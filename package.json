@@ -1,0 +1,19 @@
+{
+  "name": "js-primea-customtypes",
+  "version": "1.0.0",
+  "description": "",
+  "main": "customTypes.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "buffer-pipe": "0.0.2",
+    "leb128": "0.0.4",
+    "wasm-json-toolkit": "^0.2.3"
+  },
+  "devDependencies": {
+    "tape": "^4.9.0"
+  }
+}
