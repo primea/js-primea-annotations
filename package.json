@@ -1,19 +1,38 @@
 {
-  "name": "js-primea-customtypes",
-  "version": "1.0.0",
+  "name": "genericmodule",
+  "version": "0.0.0",
   "description": "",
-  "main": "customTypes.js",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "coveralls": "npm run coverage && nyc report --reporter=text-lcov | coveralls",
+    "coverage": "nyc npm test",
+    "lint": "standard",
+    "test": "node ./tests/index.js",
+    "build:docs": "documentation build --github  -f md ./index.js > ./docs/index.md"
   },
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    ""
+  ],
+  "author": "mjbecze <mjbecze@gmail.com>",
+  "license": "MPL-2.0",
   "dependencies": {
     "buffer-pipe": "0.0.2",
     "leb128": "0.0.4",
     "wasm-json-toolkit": "^0.2.3"
   },
   "devDependencies": {
-    "tape": "^4.9.0"
-  }
+    "coveralls": "^3.0.0",
+    "documentation": "^5.2.0",
+    "nyc": "^11.3.0",
+    "standard": "^10.0.0",
+    "tape": "^4.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:wanderer/genericmodule.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wanderer/genericmodule/issues"
+  },
+  "homepage": "https://github.com/wanderer/genericmodule"
 }
