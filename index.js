@@ -2,7 +2,7 @@ const Stream = require('buffer-pipe')
 const leb = require('leb128')
 const {findSections} = require('wasm-json-toolkit')
 
-const LANGUAGE_TYPES = {
+const LANGUAGE_TYPES_STRG = {
   'actor': 0x0,
   'buf': 0x1,
   'elem': 0x2,
@@ -12,10 +12,10 @@ const LANGUAGE_TYPES = {
   'i64': 0x7e,
   'f32': 0x7d,
   'f64': 0x7c,
-  'anyFunc': 0x70,
-  'func': 0x60,
-  'block_type': 0x40,
+  'func': 0x60
+}
 
+const LANGUAGE_TYPES_BIN = {
   0x0: 'actor',
   0x1: 'buf',
   0x02: 'elem',
@@ -25,9 +25,7 @@ const LANGUAGE_TYPES = {
   0x7e: 'i64',
   0x7d: 'f32',
   0x7c: 'f64',
-  0x70: 'anyFunc',
-  0x60: 'func',
-  0x40: 'block_type'
+  0x60: 'func'
 }
 
 function encodeJSON (json) {
@@ -56,13 +54,13 @@ function encodeCustomSection (name, json, stream, encodingFunc) {
   return stream
 }
 
-function encodeGlobals (json, stream) {
+function encodeGlobals (json, stream = new Stream()) {
   leb.unsigned.write(json.length, stream)
   for (const entry of json) {
     leb.unsigned.write(entry.index, stream)
-    leb.unsigned.write(LANGUAGE_TYPES[entry.type], stream)
+    leb.unsigned.write(LANGUAGE_TYPES_STRG[entry.type], stream)
   }
-  return stream
+  return stream.buffer
 }
 
 function decodeGlobals (buf) {
@@ -70,21 +68,31 @@ function decodeGlobals (buf) {
   let numOfEntries = leb.unsigned.read(stream)
   const json = []
   while (numOfEntries--) {
+    const index = leb.unsigned.readBn(stream).toNumber()
+    const type = LANGUAGE_TYPES_BIN[leb.unsigned.readBn(stream).toNumber()]
+    if (!type) {
+      throw new Error('invalid param')
+    }
     json.push({
-      index: leb.unsigned.readBn(stream).toNumber(),
-      type: LANGUAGE_TYPES[leb.unsigned.readBn(stream).toNumber()]
+      index,
+      type
     })
   }
+
+  if (stream.buffer.length) {
+    throw new Error('invalid buffer length')
+  }
+
   return json
 }
 
-function encodeTypeMap (json, stream) {
+function encodeTypeMap (json, stream = new Stream()) {
   leb.unsigned.write(json.length, stream)
   for (let entry of json) {
     leb.unsigned.write(entry.func, stream)
     leb.unsigned.write(entry.type, stream)
   }
-  return stream
+  return stream.buffer
 }
 
 function decodeTypeMap (buf) {
@@ -97,6 +105,9 @@ function decodeTypeMap (buf) {
       type: leb.unsigned.readBn(stream).toNumber()
     })
   }
+  if (stream.buffer.length) {
+    throw new Error('invalid buffer length')
+  }
   return json
 }
 
@@ -106,22 +117,21 @@ function encodeType (json, stream = new Stream()) {
   leb.unsigned.write(json.length, binEntries)
   for (let entry of json) {
     // a single type entry binary encoded
-    binEntries.write([LANGUAGE_TYPES[entry.form]]) // the form
+    binEntries.write([LANGUAGE_TYPES_STRG[entry.form]]) // the form
 
     const len = entry.params.length // number of parameters
     leb.unsigned.write(len, binEntries)
-    if (len !== 0) {
-      binEntries.write(entry.params.map(type => LANGUAGE_TYPES[type])) // the paramter types
-    }
-
-    binEntries.write([entry.return_type ? 1 : 0]) // number of return types
-    if (entry.return_type) {
-      binEntries.write([LANGUAGE_TYPES[entry.return_type]])
-    }
+    binEntries.write(entry.params.map(type => LANGUAGE_TYPES_STRG[type])) // the paramter types
+    binEntries.write([0])
+    // binEntries.write([entry.return_type ? 1 : 0]) // number of return types
+    // if (entry.return_type) {
+    //   binEntries.write([LANGUAGE_TYPES[entry.return_type]])
+    //   throw new Error('return type are not allowed')
+    // }
   }
 
   stream.write(binEntries.buffer)
-  return stream
+  return stream.buffer
 }
 
 function decodeType (buf) {
@@ -130,8 +140,12 @@ function decodeType (buf) {
   const json = []
   for (let i = 0; i < numberOfEntries; i++) {
     let type = stream.read(1)[0]
+    const form = LANGUAGE_TYPES_BIN[type]
+    if (form !== 'func') {
+      throw new Error('invalid form')
+    }
     const entry = {
-      form: LANGUAGE_TYPES[type],
+      form,
       params: []
     }
 
@@ -140,15 +154,25 @@ function decodeType (buf) {
     // parse the entries
     while (paramCount--) {
       const type = stream.read(1)[0]
-      entry.params.push(LANGUAGE_TYPES[type])
+      const param = LANGUAGE_TYPES_BIN[type]
+      if (!param) {
+        throw new Error('invalid param')
+      }
+      entry.params.push(param)
     }
-    const numOfReturns = leb.unsigned.readBn(stream).toNumber()
-    if (numOfReturns) {
-      type = stream.read(1)[0]
-      entry.return_type = LANGUAGE_TYPES[type]
-    }
+    // remove the last byte
+    leb.unsigned.readBn(stream)
+    // const numOfReturns = leb.unsigned.readBn(stream).toNumber()
+    // if (numOfReturns) {
+    //   type = stream.read(1)[0]
+    //   entry.return_type = LANGUAGE_TYPES[type]
+    // }
 
     json.push(entry)
+  }
+
+  if (stream.buffer.length) {
+    throw new Error('invalid buffer length')
   }
   return json
 }
@@ -195,12 +219,27 @@ function mergeTypeSections (json) {
   const {value: imports = {entries: []}} = iterator.next()
   const {value: functions = {entries: []}} = iterator.next()
   functions.entries.forEach((typeIndex, funcIndex) => {
+    const newType = type.entries[typeIndex]
+    // validate that no function signature have no return types
+    if (newType.return_type) {
+      throw new Error('no return types allowed')
+    }
     let customIndex = mappedFuncs.get(funcIndex)
     if (customIndex === undefined) {
       customIndex = mappedTypes.get(typeIndex)
+    } else {
+      const customType = result.types[customIndex]
+      if (customType.params.length !== newType.params.length) {
+        throw new Error('invalid param length')
+      }
+
+      if (!newType.params.every(param => param === 'i32')) {
+        throw new Error('invalid base param type')
+      }
     }
+
     if (customIndex === undefined) {
-      customIndex = result.types.push(type.entries[typeIndex]) - 1
+      customIndex = result.types.push(newType) - 1
       mappedTypes.set(typeIndex, customIndex)
     }
     result.indexes[funcIndex + imports.entries.length] = customIndex
@@ -223,6 +262,7 @@ module.exports = {
   decodeGlobals,
   encodeType,
   encodeTypeMap,
+  encodeGlobals,
   encodeJSON,
   mergeTypeSections
 }

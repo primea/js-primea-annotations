@@ -5,10 +5,10 @@
 
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)  
 
-This isdi easdfkl; asdfj kal;sdjfkl ajsdklfj akls;j wat?
+
 
 # INSTALL
-`npm install <name>`
+`npm install primea-custom-types`
 
 # USAGE
 

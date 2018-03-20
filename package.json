@@ -17,15 +17,16 @@
   "license": "MPL-2.0",
   "dependencies": {
     "buffer-pipe": "0.0.2",
-    "leb128": "0.0.4",
-    "wasm-json-toolkit": "^0.2.3"
+    "leb128": "0.0.4"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
     "documentation": "^5.2.0",
     "nyc": "^11.3.0",
     "standard": "^10.0.0",
-    "tape": "^4.0.3"
+    "tape": "^4.0.3",
+    "wabt": "^1.0.0",
+    "wasm-json-toolkit": "^0.2.3"
   },
   "repository": {
     "type": "git",
