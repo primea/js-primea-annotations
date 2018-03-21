@@ -3,36 +3,59 @@ const leb = require('leb128')
 const {findSections} = require('wasm-json-toolkit')
 
 const LANGUAGE_TYPES_STRG = {
-  'actor': 0x0,
-  'buf': 0x1,
-  'elem': 0x2,
-  'link': 0x3,
-  'id': 0x4,
   'i32': 0x7f,
   'i64': 0x7e,
   'f32': 0x7d,
   'f64': 0x7c,
+
+  'anyref': 0x70,
+  'module': 0x6f,
+  'data': 0x6e,
+  'elem': 0x6d,
+  'link': 0x6c,
+  'id': 0x6b,
   'func': 0x60
 }
 
 const LANGUAGE_TYPES_BIN = {
-  0x0: 'actor',
-  0x1: 'buf',
-  0x02: 'elem',
-  0x03: 'link',
-  0x04: 'id',
   0x7f: 'i32',
   0x7e: 'i64',
   0x7d: 'f32',
   0x7c: 'f64',
+
+  0x70: 'anyref',
+  0x6f: 'module',
+  0x6e: 'data',
+  0x6d: 'elem',
+  0x6c: 'link',
+  0x6b: 'id',
   0x60: 'func'
 }
 
-function encodeJSON (json) {
+const EXTERNAL_KIND_BIN = {
+  0x0: 'func',
+  0x1: 'table',
+  0x2: 'memory',
+  0x3: 'global'
+}
+
+const EXTERNAL_KIND_STRG = {
+  'func': 0x0,
+  'table': 0x1,
+  'memory': 0x2,
+  'global': 0x3
+}
+
+/**
+ * encodes the type annotations
+ * @param {Object} annotations
+ * @return {Buffer}
+ */
+function encode (annotations) {
   const stream = new Stream()
-  encodeCustomSection('types', json, stream, encodeType)
-  encodeCustomSection('typeMap', json, stream, encodeTypeMap)
-  encodeCustomSection('globals', json, stream, encodeGlobals)
+  encodeCustomSection('types', annotations, stream, encodeType)
+  encodeCustomSection('typeMap', annotations, stream, encodeTypeMap)
+  encodeCustomSection('persist', annotations, stream, encodePersist)
 
   return stream.buffer
 }
@@ -54,26 +77,44 @@ function encodeCustomSection (name, json, stream, encodingFunc) {
   return stream
 }
 
-function encodeGlobals (json, stream = new Stream()) {
-  leb.unsigned.write(json.length, stream)
-  for (const entry of json) {
+/**
+ * encodes the type annoations for persist
+ * @param {Object} annoations
+ * @param {buffer-pipe} [stream]
+ * @return {Buffer}
+ */
+function encodePersist (annotations, stream = new Stream()) {
+  leb.unsigned.write(annotations.length, stream)
+  for (const entry of annotations) {
+    const form = EXTERNAL_KIND_STRG[entry.form]
+    leb.unsigned.write(form, stream)
     leb.unsigned.write(entry.index, stream)
     leb.unsigned.write(LANGUAGE_TYPES_STRG[entry.type], stream)
   }
   return stream.buffer
 }
 
-function decodeGlobals (buf) {
+/**
+ * decodes the persist annotations
+ * @param {Buffer} buf
+ * @param {Object}
+ */
+function decodePersist (buf) {
   const stream = new Stream(Buffer.from(buf))
   let numOfEntries = leb.unsigned.read(stream)
   const json = []
   while (numOfEntries--) {
+    const form = EXTERNAL_KIND_BIN[leb.unsigned.readBn(stream).toNumber()]
+    if (!form) {
+      throw new Error('invalid form')
+    }
     const index = leb.unsigned.readBn(stream).toNumber()
     const type = LANGUAGE_TYPES_BIN[leb.unsigned.readBn(stream).toNumber()]
     if (!type) {
       throw new Error('invalid param')
     }
     json.push({
+      form,
       index,
       type
     })
@@ -86,15 +127,26 @@ function decodeGlobals (buf) {
   return json
 }
 
-function encodeTypeMap (json, stream = new Stream()) {
-  leb.unsigned.write(json.length, stream)
-  for (let entry of json) {
+/**
+ * encodes a typeMap definition
+ * @param {Object} definition
+ * @param {buffer-pipe} [stream]
+ * @return {Buffer}
+ */
+function encodeTypeMap (definition, stream = new Stream()) {
+  leb.unsigned.write(definition.length, stream)
+  for (let entry of definition) {
     leb.unsigned.write(entry.func, stream)
     leb.unsigned.write(entry.type, stream)
   }
   return stream.buffer
 }
 
+/**
+ * decodes the TypeMap section
+ * @param {Buffer} buf
+ * @param {Object}
+ */
 function decodeTypeMap (buf) {
   const stream = new Stream(Buffer.from(buf))
   let numOfEntries = leb.unsigned.read(stream)
@@ -111,11 +163,17 @@ function decodeTypeMap (buf) {
   return json
 }
 
-function encodeType (json, stream = new Stream()) {
+/**
+ * encodes the type annotations
+ * @param {Object} definition
+ * @param {buffer-pipe} [stream]
+ * @return {Buffer}
+ */
+function encodeType (annotations, stream = new Stream()) {
   let binEntries = new Stream()
 
-  leb.unsigned.write(json.length, binEntries)
-  for (let entry of json) {
+  leb.unsigned.write(annotations.length, binEntries)
+  for (let entry of annotations) {
     // a single type entry binary encoded
     binEntries.write([LANGUAGE_TYPES_STRG[entry.form]]) // the form
 
@@ -134,18 +192,22 @@ function encodeType (json, stream = new Stream()) {
   return stream.buffer
 }
 
+/**
+ * decodes the Type section
+ * @param {Buffer} buf
+ * @param {Object}
+ */
 function decodeType (buf) {
   const stream = new Stream(Buffer.from(buf))
   const numberOfEntries = leb.unsigned.readBn(stream).toNumber()
   const json = []
   for (let i = 0; i < numberOfEntries; i++) {
     let type = stream.read(1)[0]
-    const form = LANGUAGE_TYPES_BIN[type]
-    if (form !== 'func') {
+    if (type !== 0x60) {
       throw new Error('invalid form')
     }
     const entry = {
-      form,
+      form: 'func',
       params: []
     }
 
@@ -177,14 +239,25 @@ function decodeType (buf) {
   return json
 }
 
+/**
+ * injects custom sections into a wasm binary
+ * @param {Buffer} custom - the custom section(s)
+ * @param {Buffer} wasm - the wasm binary
+ * @return {Buffer}
+ */
 function injectCustomSection (custom, wasm) {
   const preramble = wasm.subarray(0, 8)
   const body = wasm.subarray(8)
   return Buffer.concat([preramble, custom, body])
 }
 
-function inject (wasm, json) {
-  const buf = encodeJSON(json)
+/**
+ * encodes a json definition and injects it into a wasm binary
+ * @param {Buffer} wasm - the wasm binary to inject
+ * @param {Object} annotation - the type definition
+ */
+function encodeAndInject (annotation, wasm) {
+  const buf = encode(annotation)
   return injectCustomSection(buf, wasm)
 }
 
@@ -193,10 +266,10 @@ function mergeTypeSections (json) {
     types: [],
     indexes: {},
     exports: {},
-    globals: []
+    persist: []
   }
 
-  const wantedSections = ['types', 'typeMap', 'globals', 'type', 'import', 'function', 'export']
+  const wantedSections = ['types', 'typeMap', 'persist', 'type', 'import', 'function', 'export']
   const iterator = findSections(json, wantedSections)
   const mappedFuncs = new Map()
   const mappedTypes = new Map()
@@ -210,9 +283,9 @@ function mergeTypeSections (json) {
     decodeTypeMap(typeMap.payload).forEach(map => mappedFuncs.set(map.func, map.type))
   }
 
-  let {value: globals} = iterator.next()
-  if (globals) {
-    result.globals = decodeGlobals(globals.payload)
+  let {value: persist} = iterator.next()
+  if (persist) {
+    result.persist = decodePersist(persist.payload)
   }
 
   const {value: type} = iterator.next()
@@ -256,13 +329,13 @@ function mergeTypeSections (json) {
 
 module.exports = {
   injectCustomSection,
-  inject,
+  encodeAndInject,
   decodeType,
   decodeTypeMap,
-  decodeGlobals,
+  decodePersist,
   encodeType,
   encodeTypeMap,
-  encodeGlobals,
-  encodeJSON,
+  encodePersist,
+  encode,
   mergeTypeSections
 }

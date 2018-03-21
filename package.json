@@ -1,5 +1,5 @@
 {
-  "name": "genericmodule",
+  "name": "primea-custom-types",
   "version": "0.0.0",
   "description": "",
   "main": "index.js",
@@ -17,6 +17,7 @@
   "license": "MPL-2.0",
   "dependencies": {
     "buffer-pipe": "0.0.2",
+    "wasm-json-toolkit": "^0.2.3",
     "leb128": "0.0.4"
   },
   "devDependencies": {
@@ -25,15 +26,14 @@
     "nyc": "^11.3.0",
     "standard": "^10.0.0",
     "tape": "^4.0.3",
-    "wabt": "^1.0.0",
-    "wasm-json-toolkit": "^0.2.3"
+    "wabt": "^1.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:wanderer/genericmodule.git"
+    "url": "git@github.com:primea/primea-custom-types.git"
   },
   "bugs": {
-    "url": "https://github.com/wanderer/genericmodule/issues"
+    "url": "https://github.com/primea/primea-custom-types/issues"
   },
-  "homepage": "https://github.com/wanderer/genericmodule"
+  "homepage": "https://github.com/primea/primea-custom-types"
 }

@@ -9,7 +9,7 @@ tape('basic', t => {
   const json = JSON.parse(fs.readFileSync(`${__dirname}/wast/caller.json`))
   const mod = wabt.parseWat('module.wast', wat)
 
-  const buf = types.encodeJSON(json)
+  const buf = types.encode(json)
   const r = mod.toBinary({
     log: true
   })
@@ -37,7 +37,7 @@ tape('basic', t => {
     'exports': {
       'call': 1
     },
-    'globals': []
+    'persist': []
   }
 
   t.deepEquals(mergedJson, expectedJson)
@@ -59,7 +59,7 @@ tape('empty', t => {
     'types': [],
     'indexes': {},
     'exports': {},
-    'globals': []
+    'persist': []
   }
 
   t.deepEquals(mergedJson, expectedJson)
@@ -74,8 +74,9 @@ tape('globals', t => {
   const r = mod.toBinary({
     log: true
   })
+
   let binary = Buffer.from(r.buffer)
-  binary = types.inject(binary, json)
+  binary = types.encodeAndInject(json, binary)
   const moduleJSON = wasm2json(binary)
   const mergedJson = types.mergeTypeSections(moduleJSON)
   const expectedJson = {
@@ -91,9 +92,10 @@ tape('globals', t => {
       'load': 3,
       'store': 2
     },
-    'globals': [{
+    'persist': [{
+      'form': 'global',
       'index': 0,
-      'type': 'buf'
+      'type': 'data'
     }]
   }
 
@@ -124,7 +126,7 @@ tape('invalid function signature', t => {
   const json = JSON.parse(fs.readFileSync(`${__dirname}/wast/invalid.json`))
   const mod = wabt.parseWat('module.wast', wat)
 
-  const buf = types.encodeJSON(json)
+  const buf = types.encode(json)
   const r = mod.toBinary({
     log: true
   })
@@ -145,7 +147,7 @@ tape('invalid function signature, wrong base type', t => {
   const json = JSON.parse(fs.readFileSync(`${__dirname}/wast/caller.json`))
   const mod = wabt.parseWat('module.wast', wat)
 
-  const buf = types.encodeJSON(json)
+  const buf = types.encode(json)
   const r = mod.toBinary({
     log: true
   })
@@ -200,22 +202,30 @@ tape('invalid typeMap encoding', t => {
   }
 })
 
-tape('invalid globals encoding', t => {
-  t.plan(2)
+tape('invalid persist encoding', t => {
+  t.plan(3)
   const json = JSON.parse(fs.readFileSync(`${__dirname}/wast/globals.json`))
-  let buf = types.encodeGlobals(json.globals)
-  const invalidBuf = Buffer.concat([buf, Buffer.from([0])])
+  let buf = types.encodePersist(json.persist)
   try {
-    types.decodeGlobals(invalidBuf)
+    const invalidBuf = Buffer.concat([buf, Buffer.from([0])])
+    types.decodePersist(invalidBuf)
   } catch (e) {
-    t.pass('should catch invalid typeMap encodings')
+    t.pass('should catch invalid persist encodings')
   }
 
   try {
     const invalidParam = Buffer.from(buf)
-    invalidParam[2] = 77
-    types.decodeGlobals(invalidParam)
+    invalidParam[3] = 77
+    types.decodePersist(invalidParam)
   } catch (e) {
-    t.pass('should catch invalid typeMap encodings')
+    t.pass('should catch invalid persist type encodings')
+  }
+
+  try {
+    const invalidParam = Buffer.from(buf)
+    invalidParam[1] = 77
+    types.decodePersist(invalidParam)
+  } catch (e) {
+    t.pass('should catch invalid persist form encodings')
   }
 })
