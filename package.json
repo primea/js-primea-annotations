@@ -1,5 +1,5 @@
 {
-  "name": "primea-custom-types",
+  "name": "primea-annotations",
   "version": "0.0.0",
   "description": "",
   "main": "index.js",
@@ -22,18 +22,18 @@
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
-    "documentation": "^5.2.0",
-    "nyc": "^11.3.0",
-    "standard": "^10.0.0",
-    "tape": "^4.0.3",
+    "documentation": "^6.1.0",
+    "nyc": "^11.6.0",
+    "standard": "^11.0.1",
+    "tape": "^4.9.0",
     "wabt": "^1.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:primea/primea-custom-types.git"
+    "url": "git@github.com:primea/primea-annotations.git"
   },
   "bugs": {
-    "url": "https://github.com/primea/primea-custom-types/issues"
+    "url": "https://github.com/primea/primea-annotations/issues"
   },
-  "homepage": "https://github.com/primea/primea-custom-types"
+  "homepage": "https://github.com/primea/primea-annotations"
 }
