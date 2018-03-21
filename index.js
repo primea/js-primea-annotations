@@ -1,4 +1,5 @@
 const Stream = require('buffer-pipe')
+const Buffer = require('safe-buffer').Buffer
 const leb = require('leb128')
 const {findSections} = require('wasm-json-toolkit')
 
@@ -340,5 +341,7 @@ module.exports = {
   encodeTypeMap,
   encodePersist,
   encode,
-  mergeTypeSections
+  mergeTypeSections,
+  LANGUAGE_TYPES_BIN,
+  LANGUAGE_TYPES_STRG
 }

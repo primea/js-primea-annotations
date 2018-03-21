@@ -17,8 +17,9 @@
   "license": "MPL-2.0",
   "dependencies": {
     "buffer-pipe": "0.0.2",
-    "wasm-json-toolkit": "^0.2.3",
-    "leb128": "0.0.4"
+    "leb128": "0.0.4",
+    "safe-buffer": "^5.1.1",
+    "wasm-json-toolkit": "^0.2.3"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
