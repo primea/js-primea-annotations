@@ -2,19 +2,19 @@ const Stream = require('buffer-pipe')
 const leb = require('leb128')
 const {findSections} = require('wasm-json-toolkit')
 
+const FUNC_TYPE = 0x60
 const LANGUAGE_TYPES_STRG = {
   'i32': 0x7f,
   'i64': 0x7e,
   'f32': 0x7d,
   'f64': 0x7c,
-
   'anyref': 0x70,
   'module': 0x6f,
-  'data': 0x6e,
-  'elem': 0x6d,
-  'link': 0x6c,
-  'id': 0x6b,
-  'func': 0x60
+  'func': 0x6e,
+  'data': 0x6d,
+  'elem': 0x6c,
+  'link': 0x6b,
+  'id': 0x6a
 }
 
 const LANGUAGE_TYPES_BIN = {
@@ -22,14 +22,13 @@ const LANGUAGE_TYPES_BIN = {
   0x7e: 'i64',
   0x7d: 'f32',
   0x7c: 'f64',
-
   0x70: 'anyref',
   0x6f: 'module',
-  0x6e: 'data',
-  0x6d: 'elem',
-  0x6c: 'link',
-  0x6b: 'id',
-  0x60: 'func'
+  0x6e: 'func',
+  0x6d: 'data',
+  0x6c: 'elem',
+  0x6b: 'link',
+  0x6a: 'id'
 }
 
 const EXTERNAL_KIND_BIN = {
@@ -175,7 +174,7 @@ function encodeType (annotations, stream = new Stream()) {
   leb.unsigned.write(annotations.length, binEntries)
   for (let entry of annotations) {
     // a single type entry binary encoded
-    binEntries.write([LANGUAGE_TYPES_STRG[entry.form]]) // the form
+    binEntries.write([FUNC_TYPE])
 
     const len = entry.params.length // number of parameters
     leb.unsigned.write(len, binEntries)
@@ -203,7 +202,7 @@ function decodeType (buf) {
   const json = []
   for (let i = 0; i < numberOfEntries; i++) {
     let type = stream.read(1)[0]
-    if (type !== 0x60) {
+    if (type !== FUNC_TYPE) {
       throw new Error('invalid form')
     }
     const entry = {
