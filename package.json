@@ -1,7 +1,7 @@
 {
   "name": "primea-annotations",
   "version": "0.0.0",
-  "description": "",
+  "description": "parsing/encoding for primea's type annotations",
   "main": "index.js",
   "scripts": {
     "coveralls": "npm run coverage && nyc report --reporter=text-lcov | coveralls",
