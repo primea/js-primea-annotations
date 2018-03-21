@@ -11,8 +11,9 @@
     "build:docs": "documentation build --github  -f md ./index.js > ./docs/index.md"
   },
   "keywords": [
-    ""
+    "primea"
   ],
+  "bin": {"primea-annotate": "./bin/annotate"},
   "author": "mjbecze <mjbecze@gmail.com>",
   "license": "MPL-2.0",
   "dependencies": {

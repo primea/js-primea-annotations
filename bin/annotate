@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+const fs = require('fs')
+const types = require('../')
+
+const typeinfoFile = process.argv[2]
+const inputWasmFile = process.argv[3]
+const outputWasmFile = process.argv[4]
+
+if (!typeinfoFile || !inputWasmFile || !outputWasmFile) {
+  console.log('inject primea annotation into a wasm binary')
+  console.log('useage: annotate <annotation_defintions.json> <inputWasm> <outputWasm>')
+} else {
+  const typeinfo = JSON.parse(fs.readFileSync(typeinfoFile))
+  const inputWasm = fs.readFileSync(inputWasmFile)
+  const outputWasm = types.encodeAndInject(typeinfo, inputWasm)
+  fs.writeFileSync(outputWasmFile, outputWasm)
+}
