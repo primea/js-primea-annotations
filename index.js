@@ -247,13 +247,17 @@ function decodeType (buf) {
 function injectCustomSection (custom, wasm) {
   const preramble = wasm.subarray(0, 8)
   const body = wasm.subarray(8)
-  return Buffer.concat([preramble, custom, body])
+  return Buffer.concat([
+    Buffer.from(preramble),
+    Buffer.from(custom),
+    Buffer.from(body)
+  ])
 }
 
 /**
  * encodes a json definition and injects it into a wasm binary
- * @param {Buffer} wasm - the wasm binary to inject
  * @param {Object} annotation - the type definition
+ * @param {Buffer} wasm - the wasm binary to inject
  */
 function encodeAndInject (annotation, wasm) {
   const buf = encode(annotation)
