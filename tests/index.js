@@ -32,7 +32,7 @@ tape('basic', t => {
     }],
     'indexes': {
       '1': 0,
-      '2': 1,
+      '2': 1
     },
     'exports': {
       'call': 1
