@@ -5,7 +5,7 @@
     i32.const 5
     get_local 0
     i32.const 0
-    call $internalize 
+    call $internalize
     i32.const 0
     call_indirect (param i32)
   )
@@ -13,8 +13,9 @@
     i32.const 5
     get_local 0
     i32.const 0
-    call $internalize 
+    call $internalize
     i32.const 0
     call_indirect (param i32)
   )
+  (func $unusedResult (result i32))
   (export "call" (func $call)))

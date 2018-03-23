@@ -29,10 +29,15 @@ tape('basic', t => {
       'params': [
         'i32'
       ]
+    }, {
+      'form': 'func',
+      'params': [],
+      'return_type': 'i32'
     }],
     'indexes': {
       '1': 0,
-      '2': 1
+      '2': 1,
+      '3': 2
     },
     'exports': {
       'call': 1

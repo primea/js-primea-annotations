@@ -297,10 +297,6 @@ function mergeTypeSections (json) {
   const {value: functions = {entries: []}} = iterator.next()
   functions.entries.forEach((typeIndex, funcIndex) => {
     const newType = type.entries[typeIndex]
-    // validate that no function signature have no return types
-    if (newType.return_type) {
-      throw new Error('no return types allowed')
-    }
     let customIndex = mappedFuncs.get(funcIndex)
     if (customIndex === undefined) {
       customIndex = mappedTypes.get(typeIndex)
@@ -325,6 +321,11 @@ function mergeTypeSections (json) {
   const {value: exports = {entries: []}} = iterator.next()
   exports.entries.forEach(entry => {
     if (entry.kind === 'function') {
+      // validate that no function signature have no return types
+      if (type.entries[functions.entries[entry.index]]
+          && type.entries[functions.entries[entry.index]].return_type) {
+        throw new Error('no return types allowed')
+      }
       result.exports[entry.field_str] = entry.index
     }
   })
