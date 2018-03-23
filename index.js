@@ -297,33 +297,37 @@ function mergeTypeSections (json) {
   const {value: functions = {entries: []}} = iterator.next()
   functions.entries.forEach((typeIndex, funcIndex) => {
     const newType = type.entries[typeIndex]
-    let customIndex = mappedFuncs.get(funcIndex)
-    if (customIndex === undefined) {
-      customIndex = mappedTypes.get(typeIndex)
-    } else {
-      const customType = result.types[customIndex]
-      if (customType.params.length !== newType.params.length) {
-        throw new Error('invalid param length')
+    if (!newType.return_type) {
+      let customIndex = mappedFuncs.get(funcIndex)
+      if (customIndex === undefined) {
+        customIndex = mappedTypes.get(typeIndex)
+      } else {
+        const customType = result.types[customIndex]
+        if (customType.params.length !== newType.params.length) {
+          throw new Error('invalid param length')
+        }
+
+        if (!newType.params.every(param => param === 'i32')) {
+          throw new Error('invalid base param type')
+        }
       }
 
-      if (!newType.params.every(param => param === 'i32')) {
-        throw new Error('invalid base param type')
+      if (customIndex === undefined) {
+        customIndex = result.types.push(newType) - 1
+        mappedTypes.set(typeIndex, customIndex)
       }
+      result.indexes[funcIndex + imports.entries.length] = customIndex
     }
-
-    if (customIndex === undefined) {
-      customIndex = result.types.push(newType) - 1
-      mappedTypes.set(typeIndex, customIndex)
-    }
-    result.indexes[funcIndex + imports.entries.length] = customIndex
   })
 
   const {value: exports = {entries: []}} = iterator.next()
   exports.entries.forEach(entry => {
     if (entry.kind === 'function') {
       // validate that no function signature have no return types
-      if (type.entries[functions.entries[entry.index]]
-          && type.entries[functions.entries[entry.index]].return_type) {
+      // get the type index. entry.index is the global function index (imported function + internal function)
+      const typeIndex = functions.entries[entry.index - imports.entries.length]
+      const exportType = type.entries[typeIndex]
+      if (exportType.return_type) {
         throw new Error('no return types allowed')
       }
       result.exports[entry.field_str] = entry.index
