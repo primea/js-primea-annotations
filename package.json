@@ -1,6 +1,6 @@
 {
   "name": "primea-annotations",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "parsing/encoding for primea's type annotations",
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,9 @@
   "keywords": [
     "primea"
   ],
-  "bin": {"primea-annotate": "./bin/annotate"},
+  "bin": {
+    "primea-annotate": "./bin/annotate"
+  },
   "author": "mjbecze <mjbecze@gmail.com>",
   "license": "MPL-2.0",
   "dependencies": {
