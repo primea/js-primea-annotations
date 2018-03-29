@@ -3,6 +3,7 @@ const Buffer = require('safe-buffer').Buffer
 const leb = require('leb128')
 const {findSections} = require('wasm-json-toolkit')
 
+const nativeTypes = new Set(['i32', 'i64', 'f32', 'f64'])
 const FUNC_TYPE = 0x60
 const LANGUAGE_TYPES_STRG = {
   'i32': 0x7f,
@@ -307,9 +308,11 @@ function mergeTypeSections (json) {
           throw new Error('invalid param length')
         }
 
-        if (!newType.params.every(param => param === 'i32')) {
-          throw new Error('invalid base param type')
-        }
+        newType.params.forEach((param, index) => {
+          if (!nativeTypes.has(customType.params[index]) && param !== 'i32') {
+            throw new Error('invalid base param type')
+          }
+        })
       }
 
       if (customIndex === undefined) {
