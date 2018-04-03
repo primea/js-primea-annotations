@@ -56,7 +56,6 @@ function encode (annotations) {
   const stream = new Stream()
   encodeCustomSection('types', annotations, stream, encodeType)
   encodeCustomSection('typeMap', annotations, stream, encodeTypeMap)
-  encodeCustomSection('persist', annotations, stream, encodePersist)
 
   return stream.buffer
 }
@@ -65,67 +64,15 @@ function encodeCustomSection (name, json, stream, encodingFunc) {
   let payload = new Stream()
   json = json[name]
 
-  if (json) {
-    stream.write([0])
-    // encode type
-    leb.unsigned.write(name.length, payload)
-    payload.write(name)
-    encodingFunc(json, payload)
-    // write the size of the payload
-    leb.unsigned.write(payload.bytesWrote, stream)
-    stream.write(payload.buffer)
-  }
+  stream.write([0])
+  // encode type
+  leb.unsigned.write(name.length, payload)
+  payload.write(name)
+  encodingFunc(json, payload)
+  // write the size of the payload
+  leb.unsigned.write(payload.bytesWrote, stream)
+  stream.write(payload.buffer)
   return stream
-}
-
-/**
- * encodes the type annoations for persist
- * @param {Object} annoations
- * @param {buffer-pipe} [stream]
- * @return {Buffer}
- */
-function encodePersist (annotations, stream = new Stream()) {
-  leb.unsigned.write(annotations.length, stream)
-  for (const entry of annotations) {
-    const form = EXTERNAL_KIND_STRG[entry.form]
-    leb.unsigned.write(form, stream)
-    leb.unsigned.write(entry.index, stream)
-    leb.unsigned.write(LANGUAGE_TYPES_STRG[entry.type], stream)
-  }
-  return stream.buffer
-}
-
-/**
- * decodes the persist annotations
- * @param {Buffer} buf
- * @param {Object}
- */
-function decodePersist (buf) {
-  const stream = new Stream(Buffer.from(buf))
-  let numOfEntries = leb.unsigned.read(stream)
-  const json = []
-  while (numOfEntries--) {
-    const form = EXTERNAL_KIND_BIN[leb.unsigned.readBn(stream).toNumber()]
-    if (!form) {
-      throw new Error('invalid form')
-    }
-    const index = leb.unsigned.readBn(stream).toNumber()
-    const type = LANGUAGE_TYPES_BIN[leb.unsigned.readBn(stream).toNumber()]
-    if (!type) {
-      throw new Error('invalid param')
-    }
-    json.push({
-      form,
-      index,
-      type
-    })
-  }
-
-  if (stream.buffer.length) {
-    throw new Error('invalid buffer length')
-  }
-
-  return json
 }
 
 /**
@@ -270,11 +217,10 @@ function mergeTypeSections (json) {
   const result = {
     types: [],
     indexes: {},
-    exports: {},
-    persist: []
+    exports: {}
   }
 
-  const wantedSections = ['types', 'typeMap', 'persist', 'type', 'import', 'function', 'export']
+  const wantedSections = ['types', 'typeMap', 'type', 'import', 'function', 'export']
   const iterator = findSections(json, wantedSections)
   const mappedFuncs = new Map()
   const mappedTypes = new Map()
@@ -286,11 +232,6 @@ function mergeTypeSections (json) {
   let {value: typeMap} = iterator.next()
   if (typeMap) {
     decodeTypeMap(typeMap.payload).forEach(map => mappedFuncs.set(map.func, map.type))
-  }
-
-  let {value: persist} = iterator.next()
-  if (persist) {
-    result.persist = decodePersist(persist.payload)
   }
 
   const {value: type} = iterator.next()
@@ -344,10 +285,8 @@ module.exports = {
   encodeAndInject,
   decodeType,
   decodeTypeMap,
-  decodePersist,
   encodeType,
   encodeTypeMap,
-  encodePersist,
   encode,
   mergeTypeSections,
   LANGUAGE_TYPES_BIN,
