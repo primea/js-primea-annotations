@@ -22,12 +22,12 @@
     "buffer-pipe": "0.0.2",
     "leb128": "0.0.4",
     "safe-buffer": "^5.1.1",
-    "wasm-json-toolkit": "^0.2.3"
+    "wasm-json-toolkit": "^0.2.4"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
-    "documentation": "^6.1.0",
-    "nyc": "^11.6.0",
+    "documentation": "^6.3.1",
+    "nyc": "^11.7.1",
     "standard": "^11.0.1",
     "tape": "^4.9.0",
     "wabt": "^1.0.0"
