@@ -1,7 +1,7 @@
 const Stream = require('buffer-pipe')
 const Buffer = require('safe-buffer').Buffer
 const leb = require('leb128')
-const {findSections} = require('wasm-json-toolkit')
+const {Iterator} = require('wasm-json-toolkit')
 
 const nativeTypes = new Set(['i32', 'i64', 'f32', 'f64'])
 const FUNC_TYPE = 0x60
@@ -274,68 +274,70 @@ function mergeTypeSections (json) {
     persist: []
   }
 
-  const wantedSections = ['types', 'typeMap', 'persist', 'type', 'import', 'function', 'export']
-  const iterator = findSections(json, wantedSections)
   const mappedFuncs = new Map()
   const mappedTypes = new Map()
-  const {value: customType} = iterator.next()
-  if (customType) {
-    const type = decodeType(customType.payload)
-    result.types = type
-  }
-  let {value: typeMap} = iterator.next()
-  if (typeMap) {
-    decodeTypeMap(typeMap.payload).forEach(map => mappedFuncs.set(map.func, map.type))
-  }
+  let type, imports, functions
 
-  let {value: persist} = iterator.next()
-  if (persist) {
-    result.persist = decodePersist(persist.payload)
-  }
+  for (const section of json) {
+    const name = section.name
+    if (name === 'custom') {
+      const sectionName = section.sectionName
+      if (sectionName === 'types') {
+        const type = decodeType(section.payload)
+        result.types = type
+      } else if (sectionName === 'typeMap') {
+        decodeTypeMap(section.payload).forEach(map => mappedFuncs.set(map.func, map.type))
+      } else if (sectionName === 'persist') {
+        result.persist = decodePersist(section.payload)
+      }
+    } else if (name === 'type') {
+      type = section
+    } else if (name === 'import') {
+      imports = section
+    } else if (name === 'function') {
+      functions = section
+      section.entries.forEach((typeIndex, funcIndex) => {
+        const newType = type.entries[typeIndex]
+        if (!newType.return_type) {
+          let customIndex = mappedFuncs.get(funcIndex)
+          if (customIndex === undefined) {
+            customIndex = mappedTypes.get(typeIndex)
+          } else {
+            const customType = result.types[customIndex]
+            if (customType.params.length !== newType.params.length) {
+              throw new Error('invalid param length')
+            }
 
-  const {value: type} = iterator.next()
-  const {value: imports = {entries: []}} = iterator.next()
-  const {value: functions = {entries: []}} = iterator.next()
-  functions.entries.forEach((typeIndex, funcIndex) => {
-    const newType = type.entries[typeIndex]
-    if (!newType.return_type) {
-      let customIndex = mappedFuncs.get(funcIndex)
-      if (customIndex === undefined) {
-        customIndex = mappedTypes.get(typeIndex)
-      } else {
-        const customType = result.types[customIndex]
-        if (customType.params.length !== newType.params.length) {
-          throw new Error('invalid param length')
-        }
-
-        newType.params.forEach((param, index) => {
-          if (!nativeTypes.has(customType.params[index]) && param !== 'i32') {
-            throw new Error('invalid base param type')
+            newType.params.forEach((param, index) => {
+              if (!nativeTypes.has(customType.params[index]) && param !== 'i32') {
+                throw new Error('invalid base param type')
+              }
+            })
           }
-        })
-      }
 
-      if (customIndex === undefined) {
-        customIndex = result.types.push(newType) - 1
-        mappedTypes.set(typeIndex, customIndex)
-      }
-      result.indexes[funcIndex + imports.entries.length] = customIndex
+          if (customIndex === undefined) {
+            customIndex = result.types.push(newType) - 1
+            mappedTypes.set(typeIndex, customIndex)
+          }
+          result.indexes[funcIndex + imports.entries.length] = customIndex
+        }
+      })
+    } else if (name === 'export') {
+      section.entries.forEach(entry => {
+        if (entry.kind === 'function') {
+          // validate that no function signature have no return types
+          // get the type index. entry.index is the global function index (imported function + internal function)
+          const typeIndex = functions.entries[entry.index - imports.entries.length]
+          const exportType = type.entries[typeIndex]
+          if (exportType.return_type) {
+            throw new Error('no return types allowed')
+          }
+          result.exports[entry.field_str] = entry.index
+        }
+      })
     }
-  })
+  }
 
-  const {value: exports = {entries: []}} = iterator.next()
-  exports.entries.forEach(entry => {
-    if (entry.kind === 'function') {
-      // validate that no function signature have no return types
-      // get the type index. entry.index is the global function index (imported function + internal function)
-      const typeIndex = functions.entries[entry.index - imports.entries.length]
-      const exportType = type.entries[typeIndex]
-      if (exportType.return_type) {
-        throw new Error('no return types allowed')
-      }
-      result.exports[entry.field_str] = entry.index
-    }
-  })
   return result
 }
 
