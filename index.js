@@ -1,7 +1,6 @@
 const Stream = require('buffer-pipe')
 const Buffer = require('safe-buffer').Buffer
 const leb = require('leb128')
-const {Iterator} = require('wasm-json-toolkit')
 
 const nativeTypes = new Set(['i32', 'i64', 'f32', 'f64'])
 const FUNC_TYPE = 0x60
