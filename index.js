@@ -275,7 +275,15 @@ function mergeTypeSections (json) {
 
   const mappedFuncs = new Map()
   const mappedTypes = new Map()
-  let type, imports, functions
+  let type = {
+    entries: []
+  }
+  let functions = {
+    entries: []
+  }
+  let imports = {
+    entries: []
+  }
 
   for (const section of json) {
     const name = section.name
