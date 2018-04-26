@@ -2,6 +2,6 @@
   "persist": [{
     "form": "global",
     "index": 0,
-    "type": "data"
+    "type": "anyref"
   }]
 }

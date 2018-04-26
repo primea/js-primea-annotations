@@ -9,13 +9,7 @@ const LANGUAGE_TYPES_STRG = {
   'i64': 0x7e,
   'f32': 0x7d,
   'f64': 0x7c,
-  'anyref': 0x70,
-  'module': 0x6f,
-  'func': 0x6e,
-  'data': 0x6d,
-  'elem': 0x6c,
-  'link': 0x6b,
-  'id': 0x6a
+  'anyref': 0x70
 }
 
 const LANGUAGE_TYPES_BIN = {
@@ -23,13 +17,7 @@ const LANGUAGE_TYPES_BIN = {
   0x7e: 'i64',
   0x7d: 'f32',
   0x7c: 'f64',
-  0x70: 'anyref',
-  0x6f: 'module',
-  0x6e: 'func',
-  0x6d: 'data',
-  0x6c: 'elem',
-  0x6b: 'link',
-  0x6a: 'id'
+  0x70: 'anyref'
 }
 
 const EXTERNAL_KIND_BIN = {
@@ -109,7 +97,8 @@ function decodePersist (buf) {
       throw new Error('invalid form')
     }
     const index = leb.unsigned.readBn(stream).toNumber()
-    const type = LANGUAGE_TYPES_BIN[leb.unsigned.readBn(stream).toNumber()]
+    const t = leb.unsigned.readBn(stream).toNumber()
+    const type = LANGUAGE_TYPES_BIN[t]
     if (!type) {
       throw new Error('invalid param')
     }
@@ -275,8 +264,15 @@ function mergeTypeSections (json) {
 
   const mappedFuncs = new Map()
   const mappedTypes = new Map()
-  let type, imports, functions
-
+  let type = {
+    entries: []
+  }
+  let functions = {
+    entries: []
+  }
+  let imports = {
+    entries: []
+  }
   for (const section of json) {
     const name = section.name
     if (name === 'custom') {

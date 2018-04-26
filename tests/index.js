@@ -22,7 +22,7 @@ tape('basic', t => {
     'types': [{
       'form': 'func',
       'params': [
-        'func'
+        'anyref'
       ]
     }, {
       'form': 'func',
@@ -95,7 +95,7 @@ tape('globals', t => {
     'persist': [{
       'form': 'global',
       'index': 0,
-      'type': 'data'
+      'type': 'anyref'
     }]
   }
 
