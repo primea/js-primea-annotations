@@ -1,6 +1,6 @@
 {
   "name": "primea-annotations",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "parsing/encoding for primea's type annotations",
   "main": "index.js",
   "scripts": {
