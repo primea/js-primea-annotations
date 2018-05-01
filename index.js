@@ -11,7 +11,7 @@ const LANGUAGE_TYPES_STRG = {
   'f64': 0x7c,
   'anyref': 0x70,
   'actor': 0x6f,
-  'module': 0x6fe,
+  'module': 0x6e,
   'func': 0x6d,
   'data': 0x6c,
   'elem': 0x6b,
