@@ -7,8 +7,8 @@ const inputWasmFile = process.argv[3]
 const outputWasmFile = process.argv[4]
 
 if (!typeinfoFile || !inputWasmFile || !outputWasmFile) {
-  console.log('inject primea annotation into a wasm binary')
-  console.log('useage: annotate <annotation_defintions.json> <inputWasm> <outputWasm>')
+  console.log('inject persistence and type annotations into a wasm binary')
+  console.log('usage: annotate <definitions.json> <input.wasm> <output.wasm>')
 } else {
   const typeinfo = JSON.parse(fs.readFileSync(typeinfoFile))
   const inputWasm = fs.readFileSync(inputWasmFile)
